@@ -8,9 +8,11 @@ https://github.com/21y4d/nmapAutomator
 https://book.hacktricks.xyz/
 
 #Author: Ted Altobell
+
 #Currently in beta testing phase and not being distributed. The machinerecon.sh script should be used for educational, ctf, or ethical hacking.
 
 #Tools used by machinerecon.sh 
+
 nmap, smbmap, smbclient, rpcclient, ldapsearch, dig, smtp-user-enum, snmp-check, snmpwalk, droopescan, wpscan, joomscan, feroxbuster, and nikto
 
 #Steps to run machinerecon.sh 
