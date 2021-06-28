@@ -7,12 +7,10 @@ https://github.com/21y4d/nmapAutomator
 #siting hacktricks as resource for some nmap commands found in the script 
 https://book.hacktricks.xyz/
 
-#Author: Ted Altobell
-
+#Author: ArchCWithClasses
 #Currently in beta testing phase and not being distributed. The machinerecon.sh script should be used for educational, ctf, or ethical hacking.
 
 #Tools used by machinerecon.sh 
-
 nmap, smbmap, smbclient, rpcclient, ldapsearch, dig, smtp-user-enum, snmp-check, snmpwalk, droopescan, wpscan, joomscan, feroxbuster, and nikto
 
 #Steps to run machinerecon.sh 
@@ -52,7 +50,7 @@ sudo apt-get install joomscan
 #Steps to install feroxbuster 
 make FeroxBuster directory
 mkdir -p FeroxBuster
-download x86_64-linux-feroxbuster.tar.gz into directroy 
+download x86_64-linux-feroxbuster.tar.gz into directroy
 wget https://github.com/epi052/feroxbuster/releases/download/v2.3.0/x86_64-linux-feroxbuster.tar.gz
 Extract tar.gz file into the folder 
 tar -xf x86_64-linux-feroxbuster.tar.gz
