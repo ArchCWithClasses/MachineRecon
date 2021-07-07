@@ -207,8 +207,8 @@ snmpFunc()
     then
         snmpPort=$(cat udpScan.txt | sed -r 's/\s+//g' | sed -n "/opensnmp/p" | cut -d "/" -f 1 | sed -n 1p)
         mkdir -p snmpResults
-        snmp-check ${args[0]} -c public -p $snmpPort | tee "$currentDirectory/snmpResults/snmpCheck.txt" &
-        snmpwalk -Os -c public -v1 ${args[0]} -p $snmpPort | tee "$currentDirectory/snmpResults/snmpWalk.txt" &
+        snmp-check -c public ${args[0]}:$snmpPort | tee "$currentDirectory/snmpResults/snmpCheck.txt" &
+        snmpwalk -Os -c public -v1 ${args[0]}:$snmpPort | tee "$currentDirectory/snmpResults/snmpWalk.txt" &
     fi
 }
 
