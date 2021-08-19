@@ -24,13 +24,10 @@ main()
     # Start script timer 
     start=$SECONDS
     ports=$(nmap -p- -T4 ${args[0]}| grep ^[0-9] | cut -d '/' -f 1 | tr '\n' ',' | sed s/,$//)
-    nmap -sCV -O -p$ports -T4 --version-all ${args[0]} -oN initial.txt &
+    nmap -sCV -O -p$ports -T4 ${args[0]} -oN initial.txt &
     nmap -sUV --version-intensity 0 --max-retries 1 -T4 ${args[0]} -oN udpScan.txt &
     wait
     echo "$ports" >> openPorts.txt
-    mkdir -p nmapVulnerabilityScans
-    nmap -sV --version-all --script vuln -T4 -p$ports ${args[0]} -oN "$currentDirectory/nmapVulnerabilityScans/vulnScan.txt" &
-    nmap -sV --version-all --script vulners -T4 --script-args mincvss=7.0 -p$ports ${args[0]} -oN "$currentDirectory/nmapVulnerabilityScans/cveScan.txt" &
     smb=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmicrosoft-ds/p" | wc -l)
     samba=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/Sambasmbd/p" | wc -l)
     rpc=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmsrpc/p" | wc -l)
@@ -86,7 +83,7 @@ udpFunc()
     if [ $1 -gt 0 ];
     then
         udpOpenPorts=$(cat udpScan.txt | sed -r 's/\s+//g' | sed -n "/udpopen/p" | grep ^[0-9] | cut -d '/' -f 1 | tr '\n' ',' | sed s/,$//)
-        nmap -sCVU --version-all --script vulners --script-args mincvss=7.0 -p$udpOpenPorts ${args[0]} -oN udpCVEScan.txt
+        nmap -sCVU -p$udpOpenPorts ${args[0]} -oN udpScriptScan.txt
     fi
 }
 
@@ -97,6 +94,7 @@ smbFunc()
         mkdir -p smbResults
         smbPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmicrosoft-ds/p" | cut -d "/" -f 1 | sed -n 1p)
         nmap --script=smb-enum-shares.nse,smb-enum-users.nse ${args[0]} -p$smbPort -oN "$currentDirectory/smbResults/smbShareEnum.txt" &
+        nmap -p$smbPort -sV --script vuln ${args[0]} -oN "$currentDirectory/smbResults/smbVuln.txt" &
         smbmap -R -H ${args[0]} -P $smbPort | tee "$currentDirectory/smbResults/smbMapGuest.txt" &
         smbmap -u '' -p '' -R -H ${args[0]} -P $smbPort | tee "$currentDirectory/smbResults/smbMapAnonymous.txt" &
         smbclient -L ${args[0]} -p $smbPort -N | tee "$currentDirectory/smbResults/smbClient.txt"
@@ -121,7 +119,7 @@ smbFunc()
         timeout 5 ngrep -i -d tun0 's.?a.?m.?b.?a.*[[:digit:]]' port $sambaPort | tee "$currentDirectory/sambaResults/sambaVersion.txt" &
         smbclient -L ${args[0]} -p $sambaPort -N | tee "$currentDirectory/sambaResults/smbClient.txt"
         sleep 5
-        nmap -sV --version-all --script smb-vuln-cve-2017-7494 --script-args smb-vuln-cve-2017-7494.check-version ${args[0]} -p$sambaPort -oN "$currentDirectory/sambaResults/sambaVuln.txt" &
+        nmap -sV --script smb-vuln-cve-2017-7494 --script-args smb-vuln-cve-2017-7494.check-version ${args[0]} -p$sambaPort -oN "$currentDirectory/sambaResults/sambaVuln.txt" &
         nmap --script=smb-enum-shares.nse,smb-enum-users.nse ${args[0]} -p$sambaPort -oN "$currentDirectory/sambaResults/sambaShareEnum.txt" &
         smbmap -R -H ${args[0]} -P $sambaPort | tee "$currentDirectory/sambaResults/smbMapGuest.txt" &
         smbmap -u '' -p '' -R -H ${args[0]} -P $sambaPort | tee "$currentDirectory/sambaResults/smbMapAnonymous.txt" &
@@ -150,9 +148,9 @@ ldapFunc()
         ldapPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openldap/p" | cut -d "/" -f 1 | sed -n 1p)
         mkdir -p ldapResults
         ldapsearch -x -h ${args[0]} -s base namingcontexts -p$ldapPort | tee "$currentDirectory/ldapResults/ldapNamingContexts.txt"
-        namingContext=$(cat ldapNamingContexts.txt | sed -n "/namingcontexts:/p" | cut -d "/" -f 1 | sed -n 1p | sed 's/[^ ]* //')
+        namingContext=$(cat ldapNamingContexts.txt | sed -n "/namingcontexts:/Ip" | cut -d "/" -f 1 | sed -n 1p | sed 's/[^ ]* //')
         ldapsearch -x -h ${args[0]} -b "$namingContext" | tee "$currentDirectory/ldapResults/ldapSearchInfo.txt" &
-        nmap -sV --version-all --script "ldap* and not brute" ${args[0]} -p$ldapPort -oN "$currentDirectory/ldapResults/ldapEnumerationScript.txt" &
+        nmap -sV --script "ldap* and not brute" ${args[0]} -p$ldapPort -oN "$currentDirectory/ldapResults/ldapEnumerationScript.txt" &
     fi
 }
 
