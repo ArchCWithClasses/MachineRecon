@@ -260,13 +260,13 @@ httpFunc()
             microsoftHTTPAPI=$(grep -i $httpPort/tcp initial.txt | sed -n "/Microsoft HTTPAPI/p" | wc -l)
             if [[ $windowsMachine -gt 0 && $microsoftHTTPAPI -eq 0 ]];
             then
-                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -k -r -x html,php,txt,jsp -s 200,301,302 -o "$currentDirectory/httpResults/feroxbusterIntensive$httpPort.txt" &
-                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 2 -k -r -x html,php,txt,jsp,js -s 200,301,302 -o "$currentDirectory/httpResults/feroxbusterRecursion$httpPort.txt" &
+                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -k -x html,php,txt,jsp -s 200,301 -o "$currentDirectory/httpResults/feroxbusterIntensive$httpPort.txt" &
+                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 4 -k -x html,php,txt,jsp,js -s 200,301 -o "$currentDirectory/httpResults/feroxbusterRecursion$httpPort.txt" &
                 nikto -host ${args[0]}:$httpPort -ask=no -maxtime 900 | tee "$currentDirectory/httpResults/nikto$httpPort.txt" &
             elif [ $linuxMachine -gt 0 ]; 
             then
-                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -k -r -x html,php,txt,jsp -s 200,301,302 -o "$currentDirectory/httpResults/feroxbusterIntensive$httpPort.txt" &
-                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 2 -k -r -x html,php,txt,jsp,js -s 200,301,302 -o "$currentDirectory/httpResults/feroxbusterRecursion$httpPort.txt" &
+                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -k -x html,php,txt,jsp -s 200,301 -o "$currentDirectory/httpResults/feroxbusterIntensive$httpPort.txt" &
+                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 4 -k -x html,php,txt,jsp,js -s 200,301 -o "$currentDirectory/httpResults/feroxbusterRecursion$httpPort.txt" &
                 nikto -host ${args[0]}:$httpPort -ask=no -maxtime 900 | tee "$currentDirectory/httpResults/nikto$httpPort.txt" &
             fi
         done
@@ -288,13 +288,13 @@ httpsFunc()
             microsoftHttpsHTTPAPI=$(grep -i $httpsPort/tcp initial.txt | sed -n "/Microsoft HTTPAPI/p" | wc -l)
             if [[ $windowsMachine -gt 0 && $microsoftHttpsHTTPAPI -eq 0 ]];
             then
-                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -k -r -x html,php,txt,jsp -s 200,301,302 -o "$currentDirectory/httpsResults/feroxbusterIntensive$httpsPort.txt" &
-                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 2 -k -r -x html,php,txt,jsp,js -s 200,301,302 -o "$currentDirectory/httpsResults/feroxbusterRecursion$httpsPort.txt" &
+                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -k -x html,php,txt,jsp -s 200,301 -o "$currentDirectory/httpsResults/feroxbusterIntensive$httpsPort.txt" &
+                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 4 -k -x html,php,txt,jsp,js -s 200,301 -o "$currentDirectory/httpsResults/feroxbusterRecursion$httpsPort.txt" &
                 nikto -host ${args[0]}:$httpsPort -ask=no -ssl -maxtime 900 | tee "$currentDirectory/httpsResults/nikto$httpsPort.txt" &
             elif [ $linuxMachine -gt 0 ]; 
             then
-                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -k -r -x html,php,txt,jsp -s 200,301,302 -o "$currentDirectory/httpsResults/feroxbusterIntensive$httpsPort.txt" &
-                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 2 -k -r -x html,php,txt,jsp,js -s 200,301,302 -o "$currentDirectory/httpsResults/feroxbusterRecursion$httpsPort.txt" &
+                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -k -x html,php,txt,jsp -s 200,301 -o "$currentDirectory/httpsResults/feroxbusterIntensive$httpsPort.txt" &
+                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 4 -k -x html,php,txt,jsp,js -s 200,301 -o "$currentDirectory/httpsResults/feroxbusterRecursion$httpsPort.txt" &
                 nikto -host ${args[0]}:$httpsPort -ask=no -ssl -maxtime 900 | tee "$currentDirectory/httpsResults/nikto$httpsPort.txt" &
             fi
         done
