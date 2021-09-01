@@ -11,6 +11,8 @@ Author: ArchCWithClasses
 
 Currently in beta testing phase and not being distributed. The machinerecon.sh script should be used for educational, ctf, or ethical hacking.
 
+I have added the customWordlist.txt that I use for directory busting, to this repository. It is a combination of the /usr/share/seclists/Discovery/Web-Content/big.txt and /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt wordlists. I have removed duplicates from the list but you will have to change the location to fit your machine. 
+
 Siting tools used by machinerecon.sh
 
 nmap
