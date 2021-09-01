@@ -164,15 +164,11 @@ rpcFunc()
         rpcAccess=$(sed -n 1p rpcResults/enumDomUsers.txt | sed 's/.* //')
         if [[ $rpcAccess != "NT_STATUS_ACCESS_DENIED" ]];
         then 
-            rpcclient -U "" -N ${args[0]} -c enumdomgroups --port -p$rpcPort | tee "$currentDirectory/rpcResults/enumDomGroups.txt" &
-            rpcclient -U "" -N ${args[0]} -c getdompwinfo --port -p$rpcPort | tee "$currentDirectory/rpcResults/getDomPasswordInfo.txt" &
-            rpcclient -U "" -N ${args[0]} -c getusrdompwinfo --port -p$rpcPort | tee "$currentDirectory/rpcResults/getusrDomPasswordInfo.txt" & 
-            rpcclient -U "" -N ${args[0]} -c querydispinfo --port -p$rpcPort | tee "$currentDirectory/rpcResults/queryDispInfo.txt" &
             cat rpcResults/enumDomUsers.txt | awk -F\[ '{print $2}' | awk -F\] '{print $1}' | tee "$currentDirectory/rpcResults/domainUsers.txt" &
             if [$2 -gt 0];
             then
                 domainName=$(cat "$currentDirectory/ldapResults/ldapNamingContexts.txt" | sed -n "/namingcontexts:/p" | cut -d "/" -f 1 | sed -n 1p | sed 's/[^ ]* //' | sed 's/DC=//g' | sed 's/,/./g')
-                python3 /usr/share/doc/python3-impacket/examples/GetNPUsers.py $domainName/ -usersfile "$currentDirectory/rpcResults/domainUsers.txt" -dc-ip ${args[0]} -outputfile kerberosHashes.txt
+                GetNPUsers.py $domainName/ -usersfile "$currentDirectory/rpcResults/domainUsers.txt" -dc-ip ${args[0]} -format hashcat -outputfile asRepHashes
             fi
         fi    
     fi
@@ -255,18 +251,10 @@ httpFunc()
         do 
             httpLine=$((i+1))
             httpPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openhttp/p" | cut -d "/" -f 1 | sed -n $(echo $httpLine)p)
-            windowsMachine=$(grep Windows initial.txt | wc -l)
-            linuxMachine=$(grep Linux initial.txt | wc -l)
             microsoftHTTPAPI=$(grep -i $httpPort/tcp initial.txt | sed -n "/Microsoft HTTPAPI/p" | wc -l)
-            if [[ $windowsMachine -gt 0 && $microsoftHTTPAPI -eq 0 ]];
+            if [[ $microsoftHTTPAPI -eq 0 ]];
             then
-                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -k -x html,php,txt,jsp -s 200,301 -o "$currentDirectory/httpResults/feroxbusterIntensive$httpPort.txt" &
-                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 4 -k -x html,php,txt,jsp,js -s 200,301 -o "$currentDirectory/httpResults/feroxbusterRecursion$httpPort.txt" &
-                nikto -host ${args[0]}:$httpPort -ask=no -maxtime 900 | tee "$currentDirectory/httpResults/nikto$httpPort.txt" &
-            elif [ $linuxMachine -gt 0 ]; 
-            then
-                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -k -x html,php,txt,jsp -s 200,301 -o "$currentDirectory/httpResults/feroxbusterIntensive$httpPort.txt" &
-                feroxbuster -u http://${args[0]}:$httpPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 4 -k -x html,php,txt,jsp,js -s 200,301 -o "$currentDirectory/httpResults/feroxbusterRecursion$httpPort.txt" &
+                feroxbuster -u http://${args[0]}:$httpPort/ -w /home/kali/Desktop/test/customWordlist.txt -d 2 -k -x html,php,txt,jsp -s 200,301,302 -o "$currentDirectory/httpResults/feroxbusterRecursion$httpPort.txt" &
                 nikto -host ${args[0]}:$httpPort -ask=no -maxtime 900 | tee "$currentDirectory/httpResults/nikto$httpPort.txt" &
             fi
         done
@@ -283,18 +271,10 @@ httpsFunc()
         do 
             httpsLine=$((j+1))
             httpsPort=$(grep -i "ssl/http" initial.txt | cut -d "/" -f 1 | sed -n $(echo $httpsLine)p)
-            windowsMachine=$(grep Windows initial.txt | wc -l)
-            linuxMachine=$(grep Linux initial.txt | wc -l)
             microsoftHttpsHTTPAPI=$(grep -i $httpsPort/tcp initial.txt | sed -n "/Microsoft HTTPAPI/p" | wc -l)
-            if [[ $windowsMachine -gt 0 && $microsoftHttpsHTTPAPI -eq 0 ]];
+            if [[ $microsoftHttpsHTTPAPI -eq 0 ]];
             then
-                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -x html,php,txt,jsp -s 200,301 -o "$currentDirectory/httpsResults/feroxbusterIntensive$httpsPort.txt" &
-                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 4 -x html,php,txt,jsp,js -s 200,301 -o "$currentDirectory/httpsResults/feroxbusterRecursion$httpsPort.txt" &
-                nikto -host ${args[0]}:$httpsPort -ask=no -ssl -maxtime 900 | tee "$currentDirectory/httpsResults/nikto$httpsPort.txt" &
-            elif [ $linuxMachine -gt 0 ]; 
-            then
-                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt --auto-bail -n -x html,php,txt,jsp -s 200,301 -o "$currentDirectory/httpsResults/feroxbusterIntensive$httpsPort.txt" &
-                feroxbuster -u https://${args[0]}:$httpsPort/ -w /usr/share/seclists/Discovery/Web-Content/big.txt --auto-bail -d 4 -x html,php,txt,jsp,js -s 200,301 -o "$currentDirectory/httpsResults/feroxbusterRecursion$httpsPort.txt" &
+                feroxbuster -u https://${args[0]}:$httpsPort/ -w /home/kali/Desktop/test/customWordlist.txt -d 2 -x html,php,txt,jsp -s 200,301,302 -o "$currentDirectory/httpsResults/feroxbusterRecursion$httpsPort.txt" &
                 nikto -host ${args[0]}:$httpsPort -ask=no -ssl -maxtime 900 | tee "$currentDirectory/httpsResults/nikto$httpsPort.txt" &
             fi
         done
