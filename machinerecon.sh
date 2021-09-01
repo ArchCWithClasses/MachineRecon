@@ -24,7 +24,7 @@ main()
     # Start script timer 
     start=$SECONDS
     ports=$(nmap -p- -T4 ${args[0]}| grep ^[0-9] | cut -d '/' -f 1 | tr '\n' ',' | sed s/,$//)
-    nmap -sCV -O -p$ports -T4 ${args[0]} -oN initial.txt &
+    nmap -sCV -p$ports -T4 ${args[0]} -oN initial.txt &
     nmap -sUV --version-intensity 0 --max-retries 1 -T4 ${args[0]} -oN udpScan.txt &
     wait
     echo "$ports" >> openPorts.txt
