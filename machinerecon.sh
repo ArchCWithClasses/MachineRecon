@@ -95,7 +95,6 @@ smbFunc()
         smbPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmicrosoft-ds/p" | cut -d "/" -f 1 | sed -n 1p)
         nmap --script=smb-enum-shares.nse,smb-enum-users.nse ${args[0]} -p$smbPort -oN "$currentDirectory/smbResults/smbShareEnum.txt" &
         nmap -p$smbPort -sV --script vuln ${args[0]} -oN "$currentDirectory/smbResults/smbVuln.txt" &
-        smbmap -R -H ${args[0]} -P $smbPort | tee "$currentDirectory/smbResults/smbMapGuest.txt" &
         smbmap -u '' -p '' -R -H ${args[0]} -P $smbPort | tee "$currentDirectory/smbResults/smbMapAnonymous.txt" &
         smbclient -L ${args[0]} -p $smbPort -N | tee "$currentDirectory/smbResults/smbClient.txt"
         shares=$(cat smbResults/smbClient.txt | sed -n "/Disk/p" | wc -l)
@@ -121,7 +120,6 @@ smbFunc()
         sleep 5
         nmap -sV --script smb-vuln-cve-2017-7494 --script-args smb-vuln-cve-2017-7494.check-version ${args[0]} -p$sambaPort -oN "$currentDirectory/sambaResults/sambaVuln.txt" &
         nmap --script=smb-enum-shares.nse,smb-enum-users.nse ${args[0]} -p$sambaPort -oN "$currentDirectory/sambaResults/sambaShareEnum.txt" &
-        smbmap -R -H ${args[0]} -P $sambaPort | tee "$currentDirectory/sambaResults/smbMapGuest.txt" &
         smbmap -u '' -p '' -R -H ${args[0]} -P $sambaPort | tee "$currentDirectory/sambaResults/smbMapAnonymous.txt" &
         shares=$(cat sambaResults/smbClient.txt | sed -n "/Disk/p" | wc -l)
         for (( l=0; l<$shares; l++ ))   
