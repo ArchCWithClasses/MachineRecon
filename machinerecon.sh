@@ -178,7 +178,7 @@ dnsFunc()
     then
         dnsPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/opendomain/p" | cut -d "/" -f 1 | sed -n 1p) 
         mkdir -p dnsResults
-        dig -x ${args[0]} @${args[0]} -p $dnsPort | tee "$currentDirectory/dnsResults/digOutput.txt" &
+        dig -x ${args[0]} @${args[0]} +nocookie -p $dnsPort | tee "$currentDirectory/dnsResults/digOutput.txt" &
     fi
 }
 
