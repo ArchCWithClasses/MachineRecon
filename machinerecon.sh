@@ -188,7 +188,6 @@ smtpFunc()
     then 
         smtpPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/opensmtp/p" | cut -d "/" -f 1 | sed -n 1p)
         mkdir -p smtpResults
-        smtp-user-enum -M VRFY -U /usr/share/wordlists/metasploit/unix_users.txt -t ${args[0]} -p $smtpPort | tee "$currentDirectory/smtpResults/smptUserEnumUnixList.txt" &
         smtp-user-enum -M VRFY -U /usr/share/seclists/Usernames/Names/names.txt -t ${args[0]} -p $smtpPort | tee "$currentDirectory/smtpResults/smptUserEnumSecList.txt" &
     fi
 }
