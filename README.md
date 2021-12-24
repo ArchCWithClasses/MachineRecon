@@ -56,3 +56,6 @@ https://github.com/epi052/feroxbuster
 
 nikto
 https://github.com/sullo/nikto
+
+crackmapexec
+https://github.com/byt3bl33d3r/CrackMapExec
