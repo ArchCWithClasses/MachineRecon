@@ -93,7 +93,8 @@ smbFunc()
     then
         mkdir -p smbResults
         smbPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmicrosoft-ds/p" | cut -d "/" -f 1 | sed -n 1p)
-        nmap --script=smb-enum-shares.nse,smb-enum-users.nse ${args[0]} -p$smbPort -oN "$currentDirectory/smbResults/smbShareEnum.txt" &
+        crackmapexec smb ${args[0]} -u '' -p '' --server-port $smbPort | tee "$currentDirectory/smbResults/WindowsOSVersion.txt" &
+        crackmapexec smb ${args[0]} -u '' -p '' --server-port $smbPort --rid-brute | grep '(SidTypeUser)' | tee "$currentDirectory/smbResults/RidBruteUsers.txt" &
         nmap -p$smbPort -sV --script vuln ${args[0]} -oN "$currentDirectory/smbResults/smbVuln.txt" &
         smbmap -u '' -p '' -R -H ${args[0]} -P $smbPort | tee "$currentDirectory/smbResults/smbMapAnonymous.txt" &
         smbclient -L ${args[0]} -p $smbPort -N | tee "$currentDirectory/smbResults/smbClient.txt"
@@ -119,7 +120,6 @@ smbFunc()
         smbclient -L ${args[0]} -p $sambaPort -N | tee "$currentDirectory/sambaResults/smbClient.txt"
         sleep 5
         nmap -sV --script smb-vuln-cve-2017-7494 --script-args smb-vuln-cve-2017-7494.check-version ${args[0]} -p$sambaPort -oN "$currentDirectory/sambaResults/sambaVuln.txt" &
-        nmap --script=smb-enum-shares.nse,smb-enum-users.nse ${args[0]} -p$sambaPort -oN "$currentDirectory/sambaResults/sambaShareEnum.txt" &
         smbmap -u '' -p '' -R -H ${args[0]} -P $sambaPort | tee "$currentDirectory/sambaResults/smbMapAnonymous.txt" &
         shares=$(cat sambaResults/smbClient.txt | sed -n "/Disk/p" | wc -l)
         for (( l=0; l<$shares; l++ ))   
