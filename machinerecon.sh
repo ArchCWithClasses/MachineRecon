@@ -32,6 +32,7 @@ main()
     samba=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/Sambasmbd/p" | wc -l)
     rpc=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmsrpc/p" | wc -l)
     ldap=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openldap/p" | wc -l)
+    kerberos=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openkerberos/p" | wc -l)
     dns=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/opendomain/p" | wc -l)
     smtp=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/opensmtp/p" | wc -l)
     snmp=$(cat udpScan.txt | sed -r 's/\s+//g' | sed -n "/opensnmp/p" | wc -l)
@@ -41,9 +42,10 @@ main()
     udpPorts=$(cat udpScan.txt | sed -r 's/\s+//g' | sed -n "/udpopen/p" | wc -l)
     
     udpFunc $udpPorts
-    smbFunc $smb $samba
     ldapFunc $ldap
     rpcFunc $rpc $ldap
+    smbFunc $smb $samba $ldap
+    kerberosFunc $kerberos
     dnsFunc $dns
     smtpFunc $smtp
     snmpFunc $snmp
@@ -83,7 +85,41 @@ udpFunc()
     if [ $1 -gt 0 ];
     then
         udpOpenPorts=$(cat udpScan.txt | sed -r 's/\s+//g' | sed -n "/udpopen/p" | grep ^[0-9] | cut -d '/' -f 1 | tr '\n' ',' | sed s/,$//)
-        nmap -sCVU -p$udpOpenPorts ${args[0]} -oN udpScriptScan.txt
+        nmap -sCVU -p$udpOpenPorts ${args[0]} -oN udpScriptScan.txt &
+    fi
+}
+
+ldapFunc()
+{
+    if [ $1 -gt 0 ];
+    then
+        ldapPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openldap/p" | cut -d "/" -f 1 | sed -n 1p)
+        mkdir -p ldapResults
+        ldapsearch -x -h ${args[0]} -s base defaultNamingContext -p$ldapPort | tee "$currentDirectory/ldapResults/ldapDefaultNamingContext.txt"
+        ldapsearch -x -h ${args[0]} -s base namingcontexts -p$ldapPort | tee "$currentDirectory/ldapResults/ldapNamingContexts.txt"
+        namingContext=$(cat ldapNamingContexts.txt | sed -n "/namingcontexts:/Ip" | cut -d "/" -f 1 | sed -n 1p | sed 's/[^ ]* //')
+        ldapsearch -x -h ${args[0]} -b "$namingContext" | tee "$currentDirectory/ldapResults/ldapSearchInfo.txt"
+        nmap -sV --script "ldap* and not brute" ${args[0]} -p$ldapPort -oN "$currentDirectory/ldapResults/ldapEnumerationScript.txt" &
+    fi
+}
+
+rpcFunc()
+{
+    if [ $1 -gt 0 ];
+    then
+        rpcPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmsrpc/p" | cut -d "/" -f 1 | sed -n 1p)
+        mkdir -p rpcResults
+        rpcclient -U "" -N ${args[0]} -c enumdomusers --port -p$rpcPort | tee "$currentDirectory/rpcResults/enumDomUsers.txt"
+        rpcAccess=$(sed -n 1p rpcResults/enumDomUsers.txt | sed 's/.* //')
+        if [[ $rpcAccess != "NT_STATUS_ACCESS_DENIED" ]];
+        then 
+            cat rpcResults/enumDomUsers.txt | awk -F\[ '{print $2}' | awk -F\] '{print $1}' | tee "$currentDirectory/rpcResults/domainUsers.txt"
+            if [$2 -gt 0];
+            then
+                domainName=$(cat $currentDirectory/ldapResults/ldapDefaultNamingContext.txt | sed -n '/defaultNamingContext:/Ip' | sed 's/[^ ]* //' | sed 's/DC=//g' | sed 's/,/./g')
+                GetNPUsers.py $domainName/ -usersfile "$currentDirectory/rpcResults/domainUsers.txt" -dc-ip ${args[0]} -format hashcat -outputfile "$currentDirectory/rpcResults/asRepHashes.txt" | grep -F -e '[+]' -e '[-]'
+            fi
+        fi    
     fi
 }
 
@@ -93,10 +129,20 @@ smbFunc()
     then
         mkdir -p smbResults
         smbPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmicrosoft-ds/p" | cut -d "/" -f 1 | sed -n 1p)
-        crackmapexec smb ${args[0]} -u '' -p '' --server-port $smbPort | tee "$currentDirectory/smbResults/WindowsOSVersion.txt" &
-        crackmapexec smb ${args[0]} -u 'a' -p '' --server-port $smbPort --rid-brute | grep '(SidTypeUser)' | tee "$currentDirectory/smbResults/RidBruteUsersAnonymous.txt" &
+        crackmapexec smb ${args[0]} -u 'Guest' -p '' --server-port $smbPort | tee "$currentDirectory/smbResults/WindowsOSVersion.txt"
+        crackmapexec smb ${args[0]} -u 'Guest' -p '' --server-port $smbPort --rid-brute | grep '(SidTypeUser)' | tee "$currentDirectory/smbResults/RidBruteUsersAnonymous.txt"
+        if grep -q "SidTypeUser" "$currentDirectory/smbResults/RidBruteUsersAnonymous.txt"; 
+        then
+            if [[ $3 -gt 0 ]]
+            then
+                cat "$currentDirectory/smbResults/RidBruteUsersAnonymous.txt" | awk -F '\' '{print $NF}' | awk '{print $1}' | tee "$currentDirectory/smbResults/domainUsers.txt"
+                domainName=$(cat $currentDirectory/ldapResults/ldapDefaultNamingContext.txt | sed -n '/defaultNamingContext:/Ip' | sed 's/[^ ]* //' | sed 's/DC=//g' | sed 's/,/./g')
+                GetNPUsers.py $domainName/ -usersfile "$currentDirectory/smbResults/domainUsers.txt" -dc-ip ${args[0]} -format hashcat -outputfile "$currentDirectory/smbResults/asRepHashes.txt" | grep -F -e '[+]' -e '[-]'
+            fi
+        fi
         nmap -p$smbPort -sV --script vuln ${args[0]} -oN "$currentDirectory/smbResults/smbVuln.txt" &
-        smbmap -u '' -p '' -R -H ${args[0]} -P $smbPort | tee "$currentDirectory/smbResults/smbMapAnonymous.txt" &
+        smbmap -R -H ${args[0]} -P $sambaPort | tee "$currentDirectory/smbResults/smbMapNullSession.txt" &
+        smbmap -R -H ${args[0]} -u null -p null -P $sambaPort | tee "$currentDirectory/smbResults/smbMapGuestSession.txt" &
         smbclient -L ${args[0]} -p $smbPort -N | tee "$currentDirectory/smbResults/smbClient.txt"
         shares=$(cat smbResults/smbClient.txt | sed -n "/Disk/p" | wc -l)
         for (( k=0; k<$shares; k++ ))   
@@ -120,7 +166,8 @@ smbFunc()
         smbclient -L ${args[0]} -p $sambaPort -N | tee "$currentDirectory/sambaResults/smbClient.txt"
         sleep 5
         nmap -sV --script smb-vuln-cve-2017-7494 --script-args smb-vuln-cve-2017-7494.check-version ${args[0]} -p$sambaPort -oN "$currentDirectory/sambaResults/sambaVuln.txt" &
-        smbmap -u '' -p '' -R -H ${args[0]} -P $sambaPort | tee "$currentDirectory/sambaResults/smbMapAnonymous.txt" &
+        smbmap -R -H ${args[0]} -P $sambaPort | tee "$currentDirectory/sambaResults/smbMapNullSession.txt" &
+        smbmap -R -H ${args[0]} -u null -p null -P $sambaPort | tee "$currentDirectory/sambaResults/smbMapGuestSession.txt" &
         shares=$(cat sambaResults/smbClient.txt | sed -n "/Disk/p" | wc -l)
         for (( l=0; l<$shares; l++ ))   
         do 
@@ -139,36 +186,13 @@ smbFunc()
 
 }
 
-ldapFunc()
+kerberosFunc()
 {
     if [ $1 -gt 0 ];
     then
-        ldapPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openldap/p" | cut -d "/" -f 1 | sed -n 1p)
-        mkdir -p ldapResults
-        ldapsearch -x -h ${args[0]} -s base namingcontexts -p$ldapPort | tee "$currentDirectory/ldapResults/ldapNamingContexts.txt"
-        namingContext=$(cat ldapNamingContexts.txt | sed -n "/namingcontexts:/Ip" | cut -d "/" -f 1 | sed -n 1p | sed 's/[^ ]* //')
-        ldapsearch -x -h ${args[0]} -b "$namingContext" | tee "$currentDirectory/ldapResults/ldapSearchInfo.txt" &
-        nmap -sV --script "ldap* and not brute" ${args[0]} -p$ldapPort -oN "$currentDirectory/ldapResults/ldapEnumerationScript.txt" &
-    fi
-}
-
-rpcFunc()
-{
-    if [ $1 -gt 0 ];
-    then
-        rpcPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmsrpc/p" | cut -d "/" -f 1 | sed -n 1p)
-        mkdir -p rpcResults
-        rpcclient -U "" -N ${args[0]} -c enumdomusers --port -p$rpcPort | tee "$currentDirectory/rpcResults/enumDomUsers.txt"
-        rpcAccess=$(sed -n 1p rpcResults/enumDomUsers.txt | sed 's/.* //')
-        if [[ $rpcAccess != "NT_STATUS_ACCESS_DENIED" ]];
-        then 
-            cat rpcResults/enumDomUsers.txt | awk -F\[ '{print $2}' | awk -F\] '{print $1}' | tee "$currentDirectory/rpcResults/domainUsers.txt" &
-            if [$2 -gt 0];
-            then
-                domainName=$(cat "$currentDirectory/ldapResults/ldapNamingContexts.txt" | sed -n "/namingcontexts:/p" | cut -d "/" -f 1 | sed -n 1p | sed 's/[^ ]* //' | sed 's/DC=//g' | sed 's/,/./g')
-                GetNPUsers.py $domainName/ -usersfile "$currentDirectory/rpcResults/domainUsers.txt" -dc-ip ${args[0]} -format hashcat -outputfile "$currentDirectory/rpcResults/asRepHashes.txt"
-            fi
-        fi    
+        mkdir -p kerberosResults
+        domainName=$(cat $currentDirectory/ldapResults/ldapDefaultNamingContext.txt | sed -n '/defaultNamingContext:/Ip' | sed 's/[^ ]* //' | sed 's/DC=//g' | sed 's/,/./g')
+        /home/kali/go/bin/kerbrute userenum /usr/share/seclists/Usernames/Names/names.txt --dc ${args[0]} --domain $domainName -v | grep 'VALID USERNAME:' | awk -F ':' '{print $NF}' | awk '{print $1}' | tee "$currentDirectory/kerberosResults/users.txt"
     fi
 }
 
@@ -178,7 +202,7 @@ dnsFunc()
     then
         dnsPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/opendomain/p" | cut -d "/" -f 1 | sed -n 1p) 
         mkdir -p dnsResults
-        dig -x ${args[0]} @${args[0]} +nocookie -p $dnsPort | tee "$currentDirectory/dnsResults/digOutput.txt" &
+        dig -x ${args[0]} @${args[0]} -p $dnsPort | tee "$currentDirectory/dnsResults/digOutput.txt" &
     fi
 }
 
