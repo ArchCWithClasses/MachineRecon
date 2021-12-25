@@ -96,8 +96,7 @@ ldapFunc()
         ldapPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openldap/p" | cut -d "/" -f 1 | sed -n 1p)
         mkdir -p ldapResults
         ldapsearch -x -h ${args[0]} -s base defaultNamingContext -p$ldapPort | tee "$currentDirectory/ldapResults/ldapDefaultNamingContext.txt"
-        ldapsearch -x -h ${args[0]} -s base namingcontexts -p$ldapPort | tee "$currentDirectory/ldapResults/ldapNamingContexts.txt"
-        namingContext=$(cat ldapNamingContexts.txt | sed -n "/namingcontexts:/Ip" | cut -d "/" -f 1 | sed -n 1p | sed 's/[^ ]* //')
+        namingContext=$(cat $currentDirectory/ldapResults/ldapDefaultNamingContext.txt | sed -n '/defaultNamingContext:/Ip' | sed 's/[^ ]* //')
         ldapsearch -x -h ${args[0]} -b "$namingContext" | tee "$currentDirectory/ldapResults/ldapSearchInfo.txt"
         nmap -sV --script "ldap* and not brute" ${args[0]} -p$ldapPort -oN "$currentDirectory/ldapResults/ldapEnumerationScript.txt" &
     fi
@@ -141,8 +140,8 @@ smbFunc()
             fi
         fi
         nmap -p$smbPort -sV --script vuln ${args[0]} -oN "$currentDirectory/smbResults/smbVuln.txt" &
-        smbmap -R -H ${args[0]} -P $sambaPort | tee "$currentDirectory/smbResults/smbMapNullSession.txt" &
-        smbmap -R -H ${args[0]} -u null -p null -P $sambaPort | tee "$currentDirectory/smbResults/smbMapGuestSession.txt" &
+        smbmap -R -H ${args[0]} -P $smbPort | tee "$currentDirectory/smbResults/smbMapNullSession.txt" &
+        smbmap -R -H ${args[0]} -u null -p null -P $smbPort | tee "$currentDirectory/smbResults/smbMapGuestSession.txt" &
         smbclient -L ${args[0]} -p $smbPort -N | tee "$currentDirectory/smbResults/smbClient.txt"
         shares=$(cat smbResults/smbClient.txt | sed -n "/Disk/p" | wc -l)
         for (( k=0; k<$shares; k++ ))   
@@ -192,7 +191,7 @@ kerberosFunc()
     then
         mkdir -p kerberosResults
         domainName=$(cat $currentDirectory/ldapResults/ldapDefaultNamingContext.txt | sed -n '/defaultNamingContext:/Ip' | sed 's/[^ ]* //' | sed 's/DC=//g' | sed 's/,/./g')
-        /home/kali/go/bin/kerbrute userenum /usr/share/seclists/Usernames/Names/names.txt --dc ${args[0]} --domain $domainName -v | grep 'VALID USERNAME:' | awk -F ':' '{print $NF}' | awk '{print $1}' | tee "$currentDirectory/kerberosResults/users.txt"
+        timeout 10m /home/kali/go/bin/kerbrute userenum /usr/share/seclists/Usernames/xato-net-10-million-usernames.txt --dc ${args[0]} --domain $domainName -v | grep 'VALID USERNAME:' | awk -F ':' '{print $NF}' | awk '{print $1}' | tee "$currentDirectory/kerberosResults/users.txt"
     fi
 }
 
