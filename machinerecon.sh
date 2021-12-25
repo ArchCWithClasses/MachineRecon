@@ -94,7 +94,8 @@ smbFunc()
         mkdir -p smbResults
         smbPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmicrosoft-ds/p" | cut -d "/" -f 1 | sed -n 1p)
         crackmapexec smb ${args[0]} -u '' -p '' --server-port $smbPort | tee "$currentDirectory/smbResults/WindowsOSVersion.txt" &
-        crackmapexec smb ${args[0]} -u '' -p '' --server-port $smbPort --rid-brute | grep '(SidTypeUser)' | tee "$currentDirectory/smbResults/RidBruteUsers.txt" &
+        crackmapexec smb ${args[0]} -u '' -p '' --server-port $smbPort --rid-brute | grep '(SidTypeUser)' | tee "$currentDirectory/smbResults/RidBruteUsersNull.txt" &
+        crackmapexec smb ${args[0]} -u 'a' -p '' --server-port $smbPort --rid-brute | grep '(SidTypeUser)' | tee "$currentDirectory/smbResults/RidBruteUsersAnonymous.txt" &
         nmap -p$smbPort -sV --script vuln ${args[0]} -oN "$currentDirectory/smbResults/smbVuln.txt" &
         smbmap -u '' -p '' -R -H ${args[0]} -P $smbPort | tee "$currentDirectory/smbResults/smbMapAnonymous.txt" &
         smbclient -L ${args[0]} -p $smbPort -N | tee "$currentDirectory/smbResults/smbClient.txt"
@@ -166,7 +167,7 @@ rpcFunc()
             if [$2 -gt 0];
             then
                 domainName=$(cat "$currentDirectory/ldapResults/ldapNamingContexts.txt" | sed -n "/namingcontexts:/p" | cut -d "/" -f 1 | sed -n 1p | sed 's/[^ ]* //' | sed 's/DC=//g' | sed 's/,/./g')
-                GetNPUsers.py $domainName/ -usersfile "$currentDirectory/rpcResults/domainUsers.txt" -dc-ip ${args[0]} -format hashcat -outputfile asRepHashes
+                GetNPUsers.py $domainName/ -usersfile "$currentDirectory/rpcResults/domainUsers.txt" -dc-ip ${args[0]} -format hashcat -outputfile "$currentDirectory/rpcResults/asRepHashes.txt"
             fi
         fi    
     fi
