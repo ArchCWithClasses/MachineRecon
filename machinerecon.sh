@@ -127,9 +127,10 @@ smbFunc()
     if [ $1 -gt 0 ];
     then
         mkdir -p smbResults
+        mkdir -p smbResults/shares
         smbPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmicrosoft-ds/p" | cut -d "/" -f 1 | sed -n 1p)
-        crackmapexec smb ${args[0]} -u 'Guest' -p '' --server-port $smbPort | tee "$currentDirectory/smbResults/WindowsOSVersion.txt"
-        crackmapexec smb ${args[0]} -u 'Guest' -p '' --server-port $smbPort --rid-brute | grep '(SidTypeUser)' | tee "$currentDirectory/smbResults/RidBruteUsersAnonymous.txt"
+        crackmapexec smb ${args[0]} --server-port $smbPort | tee "$currentDirectory/smbResults/WindowsOSVersion.txt"
+        crackmapexec smb ${args[0]} -u 'anonymous' -p '' --server-port $smbPort --rid-brute | grep '(SidTypeUser)' | tee "$currentDirectory/smbResults/RidBruteUsersAnonymous.txt"
         if grep -q "SidTypeUser" "$currentDirectory/smbResults/RidBruteUsersAnonymous.txt"; 
         then
             if [[ $3 -gt 0 ]]
@@ -148,18 +149,19 @@ smbFunc()
         do 
             shareLine=$((k+1))
             shareName=$(cat smbResults/smbClient.txt | sed -n "/Disk/p" | sed -n $(echo $shareLine)p | sed 's/Disk.*//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-            smbclient //${args[0]}/$shareName -p $smbPort -c dir -N | tee "$currentDirectory/smbResults/DirectoryListing$shareName.txt"
-            smbAccess=$(cat "$currentDirectory/smbResults/DirectoryListing$shareName.txt" | sed 's/^[ \t]*//;s/[ \t]*$//')
+            smbclient //${args[0]}/$shareName -p $smbPort -c dir -N | tee "$currentDirectory/smbResults/shares/DirectoryListing$shareName.txt"
+            smbAccess=$(cat "$currentDirectory/smbResults/shares/DirectoryListing$shareName.txt" | sed 's/^[ \t]*//;s/[ \t]*$//')
             if [[ ! $smbAccess =~ "NT_STATUS_ACCESS_DENIED" ]];
             then
-                mkdir -p "$currentDirectory/smbResults/$shareName"
-                smbclient //${args[0]}/$shareName -p $smbPort -N -Tc "$currentDirectory/smbResults/$shareName/$shareName.tar";tar xf "$currentDirectory/smbResults/$shareName/$shareName.tar" -C "$currentDirectory/smbResults/$shareName"
+                mkdir -p "$currentDirectory/smbResults/shares/$shareName"
+                smbclient //${args[0]}/$shareName -p $smbPort -N -Tc "$currentDirectory/smbResults/shares/$shareName/$shareName.tar";tar xf "$currentDirectory/smbResults/shares/$shareName/$shareName.tar" -C "$currentDirectory/smbResults/shares/$shareName"
             fi
         done
 
     elif [ $2 -gt 0 ]; 
     then
         mkdir -p sambaResults
+        mkdir -p sambaResults/shares
         sambaPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/Sambasmbd/p" | cut -d "/" -f 1 | sed -n 1p)
         timeout 5 ngrep -i -d tun0 's.?a.?m.?b.?a.*[[:digit:]]' port $sambaPort | tee "$currentDirectory/sambaResults/sambaVersion.txt" &
         smbclient -L ${args[0]} -p $sambaPort -N | tee "$currentDirectory/sambaResults/smbClient.txt"
@@ -172,12 +174,12 @@ smbFunc()
         do 
             shareLine=$((l+1))
             shareName=$(cat sambaResults/smbClient.txt | sed -n "/Disk/p" | sed -n $(echo $shareLine)p | sed 's/Disk.*//g' | sed 's/^[ \t]*//;s/[ \t]*$//')
-            smbclient //${args[0]}/$shareName -p $sambaPort -c dir -N | tee "$currentDirectory/sambaResults/DirectoryListing$shareName.txt"
-            sambAccess=$(cat "$currentDirectory/sambaResults/DirectoryListing$shareName.txt" | sed 's/^[ \t]*//;s/[ \t]*$//')
+            smbclient //${args[0]}/$shareName -p $sambaPort -c dir -N | tee "$currentDirectory/sambaResults/shares/DirectoryListing$shareName.txt"
+            sambAccess=$(cat "$currentDirectory/sambaResults/shares/DirectoryListing$shareName.txt" | sed 's/^[ \t]*//;s/[ \t]*$//')
             if [[ ! $sambAccess =~ "NT_STATUS_ACCESS_DENIED" ]];
             then
-                mkdir -p "$currentDirectory/sambaResults/$shareName"
-                smbclient //${args[0]}/$shareName -p $sambaPort -N -Tc "$currentDirectory/sambaResults/$shareName/$shareName.tar";tar xf "$currentDirectory/sambaResults/$shareName/$shareName.tar" -C "$currentDirectory/sambaResults/$shareName"
+                mkdir -p "$currentDirectory/sambaResults/shares/$shareName"
+                smbclient //${args[0]}/$shareName -p $sambaPort -N -Tc "$currentDirectory/sambaResults/shares/$shareName/$shareName.tar";tar xf "$currentDirectory/sambaResults/shares/$shareName/$shareName.tar" -C "$currentDirectory/sambaResults/shares/$shareName"
             fi
 
         done
