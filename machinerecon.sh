@@ -94,7 +94,6 @@ smbFunc()
         mkdir -p smbResults
         smbPort=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmicrosoft-ds/p" | cut -d "/" -f 1 | sed -n 1p)
         crackmapexec smb ${args[0]} -u '' -p '' --server-port $smbPort | tee "$currentDirectory/smbResults/WindowsOSVersion.txt" &
-        crackmapexec smb ${args[0]} -u '' -p '' --server-port $smbPort --rid-brute | grep '(SidTypeUser)' | tee "$currentDirectory/smbResults/RidBruteUsersNull.txt" &
         crackmapexec smb ${args[0]} -u 'a' -p '' --server-port $smbPort --rid-brute | grep '(SidTypeUser)' | tee "$currentDirectory/smbResults/RidBruteUsersAnonymous.txt" &
         nmap -p$smbPort -sV --script vuln ${args[0]} -oN "$currentDirectory/smbResults/smbVuln.txt" &
         smbmap -u '' -p '' -R -H ${args[0]} -P $smbPort | tee "$currentDirectory/smbResults/smbMapAnonymous.txt" &
