@@ -59,3 +59,6 @@ https://github.com/sullo/nikto
 
 crackmapexec
 https://github.com/byt3bl33d3r/CrackMapExec
+
+GetNPUsers.py
+https://github.com/SecureAuthCorp/impacket/blob/master/examples/GetNPUsers.py
