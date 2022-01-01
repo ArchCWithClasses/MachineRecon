@@ -23,9 +23,9 @@ main()
 
     # Start script timer 
     start=$SECONDS
-    ports=$(nmap -p- -T4 ${args[0]}| grep ^[0-9] | cut -d '/' -f 1 | tr '\n' ',' | sed s/,$//)
-    nmap -sCV -p$ports -T4 ${args[0]} -oN initial.txt &
-    nmap -sUV --version-intensity 0 --max-retries 1 -T4 ${args[0]} -oN udpScan.txt &
+    ports=$(nmap -p- ${args[0]} -T4 | grep ^[0-9] | cut -d '/' -f 1 | tr '\n' ',' | sed s/,$//)
+    nmap -sCV -p$ports ${args[0]} -T4 -oN initial.txt &
+    nmap -sUV --version-intensity 0 --max-retries 1 ${args[0]} -T4 -oN udpScan.txt &
     wait
     echo "$ports" >> openPorts.txt
     smb=$(cat initial.txt | sed -r 's/\s+//g' | sed -n "/openmicrosoft-ds/p" | wc -l)
