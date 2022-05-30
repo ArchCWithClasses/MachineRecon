@@ -1,10 +1,10 @@
 # MachineRecon
 This is a shell script to help with gaining initial foothold into a machine.
 
-Siting nmapAutomator as source for idea on making automated reconnaissance script
+Citing nmapAutomator as source for idea on making automated reconnaissance script
 https://github.com/21y4d/nmapAutomator
 
-Siting hacktricks as resource for some nmap commands found in the script 
+Citing hacktricks as resource for some nmap commands found in the script 
 https://book.hacktricks.xyz/pentesting/pentesting-network
 
 Author: ArchCWithClasses
@@ -13,7 +13,7 @@ Currently in beta testing phase and not being distributed. The machinerecon.sh s
 
 I have added the customWordlist.txt that I use for directory busting, to this repository. It is a combination of the /usr/share/seclists/Discovery/Web-Content/big.txt and /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt wordlists. I have removed duplicates from the list but you will have to change the location to fit your machine. 
 
-Siting tools used by machinerecon.sh
+Citing tools used by machinerecon.sh
 
 nmap
 https://github.com/nmap/nmap
