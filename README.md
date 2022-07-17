@@ -7,7 +7,7 @@ https://github.com/21y4d/nmapAutomator
 Citing hacktricks as resource for some nmap commands found in the script 
 https://book.hacktricks.xyz/pentesting/pentesting-network
 
-Author: ArchCWithClasses
+Author: ReconDeveloper
 
 Currently in beta testing phase and not being distributed. The machinerecon.sh script should be used for educational, ctf, or ethical hacking.
 
